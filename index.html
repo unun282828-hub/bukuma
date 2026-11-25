@@ -1,0 +1,591 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="ブクマ帳">
+<meta name="theme-color" content="#f6f4ef" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#17181a" media="(prefers-color-scheme: dark)">
+<title>ブクマ帳</title>
+<style>
+:root{
+  --bg:#f6f4ef; --surface:#fff; --surface2:#efece5; --text:#1d1d1f; --muted:#6b6b70; --line:#e2ded5;
+  --accent:#c2552d; --accent-text:#fff;
+  --recipe:#b54a24; --recipe-soft:#f8e4da;
+  --info:#2a64a8; --info-soft:#dfeaf7;
+  --other:#5f5f66; --other-soft:#e9e9ec;
+  --later:#8a5d00; --later-soft:#fbefcc;
+  --shadow:0 1px 2px rgba(0,0,0,.06);
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#17181a; --surface:#222326; --surface2:#2c2d31; --text:#ececef; --muted:#9c9ca3; --line:#36373c;
+    --accent:#ef8a5f; --accent-text:#1d1206;
+    --recipe:#f29a73; --recipe-soft:#3d2a22;
+    --info:#8ab8f0; --info-soft:#1f2e40;
+    --other:#b0b0b8; --other-soft:#303136;
+    --later:#ecc25a; --later-soft:#3a3020;
+    --shadow:none;
+  }
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Hiragino Kaku Gothic ProN","Yu Gothic UI","Meiryo",sans-serif;
+  font-size:15px;line-height:1.6;padding-bottom:env(safe-area-inset-bottom)}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+a{color:var(--info)}
+
+/* 上の固定部分 */
+header{position:sticky;top:0;z-index:10;background:var(--bg);padding:calc(env(safe-area-inset-top) + 10px) 16px 0;border-bottom:1px solid var(--line)}
+.top{display:flex;align-items:center;gap:8px}
+.top h1{font-size:18px;margin:0;flex:none;letter-spacing:.02em}
+.top .total{color:var(--muted);font-size:12px;flex:1}
+.icon-btn{border:0;background:var(--surface2);border-radius:10px;width:38px;height:38px;font-size:18px;display:grid;place-items:center}
+.search{display:flex;gap:8px;margin:10px 0 8px}
+.search input{flex:1;min-width:0;font-size:16px;padding:9px 12px;border-radius:10px;border:1px solid var(--line);background:var(--surface)}
+.search select{font-size:14px;padding:0 6px;border-radius:10px;border:1px solid var(--line);background:var(--surface);max-width:108px}
+.tabs,.tags{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;margin:0 -16px;padding:0 16px}
+.tabs::-webkit-scrollbar,.tags::-webkit-scrollbar{display:none}
+.tabs{padding-bottom:8px}
+.tab{flex:none;border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:5px 12px;font-size:14px;white-space:nowrap}
+.tab b{font-weight:600;margin-left:4px;font-size:12px;color:var(--muted)}
+.tab[aria-pressed="true"]{background:var(--text);color:var(--bg);border-color:var(--text)}
+.tab[aria-pressed="true"] b{color:inherit;opacity:.75}
+.tags{padding-bottom:10px}
+.tags:empty{display:none}
+.tag{flex:none;border:0;background:var(--surface2);border-radius:8px;padding:3px 10px;font-size:13px;white-space:nowrap;color:var(--muted)}
+.tag[aria-pressed="true"]{background:var(--accent);color:var(--accent-text)}
+
+/* 一覧 */
+main{padding:12px 16px 40px;max-width:720px;margin:0 auto}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin-bottom:10px;box-shadow:var(--shadow);display:block;width:100%;text-align:left}
+.meta{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);flex-wrap:wrap}
+.badge{border-radius:6px;padding:1px 7px;font-size:11.5px;font-weight:600}
+.b-recipe{background:var(--recipe-soft);color:var(--recipe)}
+.b-info{background:var(--info-soft);color:var(--info)}
+.b-other{background:var(--other-soft);color:var(--other)}
+.b-later{background:var(--later-soft);color:var(--later)}
+.card h3{font-size:15.5px;margin:6px 0 2px;line-height:1.45}
+.card .text{margin:4px 0 0;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;white-space:pre-wrap;word-break:break-word;font-size:14px}
+.card .row{display:flex;gap:10px}
+.card .row > div{flex:1;min-width:0}
+.thumb{flex:none;width:76px;height:76px;border-radius:10px;object-fit:cover;background:var(--surface2);margin-top:6px}
+.chips{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px}
+.chip{font-size:12px;background:var(--surface2);border-radius:6px;padding:1px 7px;color:var(--muted)}
+.made{color:var(--recipe);font-weight:600}
+.more{text-align:center;color:var(--muted);font-size:13px;padding:14px}
+.empty{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:20px 18px}
+.empty h2{margin:0 0 8px;font-size:17px}
+.empty ol{padding-left:1.3em;margin:8px 0 14px}
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:9px 14px;font-size:15px}
+.btn.primary{background:var(--accent);color:var(--accent-text);border-color:var(--accent);font-weight:600}
+.btns{display:flex;gap:8px;flex-wrap:wrap}
+
+/* 詳細・メニュー（全画面のシート） */
+dialog{border:0;padding:0;margin:0;width:100%;max-width:720px;height:100%;max-height:100%;background:var(--bg);color:var(--text);inset:0;margin:auto}
+dialog::backdrop{background:rgba(0,0,0,.4)}
+.sheet-head{position:sticky;top:0;background:var(--bg);display:flex;align-items:center;gap:8px;padding:calc(env(safe-area-inset-top) + 10px) 16px 10px;border-bottom:1px solid var(--line);z-index:1}
+.sheet-head .grow{flex:1}
+.sheet-body{padding:14px 16px calc(env(safe-area-inset-bottom) + 40px)}
+.seg{display:flex;background:var(--surface2);border-radius:10px;padding:3px;gap:3px}
+.seg button{flex:1;border:0;background:transparent;border-radius:8px;padding:7px 4px;font-size:14px}
+.seg button[aria-pressed="true"]{background:var(--surface);box-shadow:0 1px 3px rgba(0,0,0,.12);font-weight:600}
+.actions{display:flex;gap:8px;margin:10px 0 4px;flex-wrap:wrap}
+.actions .btn{flex:1;min-width:140px;padding:9px 8px;font-size:14px;white-space:nowrap}
+.btn.on-later{background:var(--later-soft);color:var(--later);border-color:transparent;font-weight:600}
+.btn.on-made{background:var(--recipe-soft);color:var(--recipe);border-color:transparent;font-weight:600}
+.section{margin-top:18px}
+.section h4{margin:0 0 6px;font-size:13px;color:var(--muted);font-weight:600}
+.fulltext{white-space:pre-wrap;word-break:break-word;margin:0}
+.media{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:6px;margin-top:10px}
+.media img{width:100%;border-radius:10px;background:var(--surface2)}
+.recipe{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.recipe ul,.recipe ol{margin:4px 0 0;padding-left:1.3em}
+.recipe li{margin:2px 0}
+textarea{width:100%;min-height:80px;font-size:16px;border:1px solid var(--line);border-radius:10px;padding:8px 10px;background:var(--surface);resize:vertical}
+.menu-list{display:flex;flex-direction:column;gap:10px}
+.menu-list .btn{text-align:left}
+.menu-list p{margin:2px 2px 0;color:var(--muted);font-size:12.5px}
+.danger{color:#c62828}
+
+.toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 20px);transform:translateX(-50%);background:var(--text);color:var(--bg);padding:10px 16px;border-radius:12px;font-size:14px;z-index:100;max-width:calc(100% - 32px);opacity:0;transition:opacity .2s;pointer-events:none}
+.toast.show{opacity:1}
+</style>
+</head>
+<body>
+<header>
+  <div class="top">
+    <h1>ブクマ帳</h1>
+    <span class="total" id="total"></span>
+    <button class="icon-btn" id="menuBtn" aria-label="メニュー">⋯</button>
+  </div>
+  <div class="search">
+    <input id="q" type="search" placeholder="検索（例: 鶏むね　レンジ）" enterkeyhint="search" autocomplete="off">
+    <select id="sort" aria-label="並び順">
+      <option value="new">新しい順</option>
+      <option value="old">古い順</option>
+      <option value="made">よく作る順</option>
+    </select>
+  </div>
+  <nav class="tabs" id="tabs"></nav>
+  <div class="tags" id="tags"></div>
+</header>
+
+<main id="list"></main>
+<div class="more" id="sentinel"></div>
+
+<dialog id="detail">
+  <div class="sheet-head">
+    <button class="btn" data-close>← 戻る</button>
+    <span class="grow"></span>
+    <a class="btn" id="openX" target="_blank" rel="noopener">Xで開く ↗</a>
+  </div>
+  <div class="sheet-body" id="detailBody"></div>
+</dialog>
+
+<dialog id="menu">
+  <div class="sheet-head">
+    <button class="btn" data-close>← 戻る</button>
+    <span class="grow"></span>
+  </div>
+  <div class="sheet-body">
+    <div class="menu-list">
+      <div>
+        <button class="btn primary" id="importBtn">📥 データを読み込む</button>
+        <p>ASが分類したJSONファイル、または「メモ・チェック」の控えを選びます。今あるデータとメモは消えません（重ねて取り込みます）。</p>
+      </div>
+      <div>
+        <button class="btn" id="exportBtn">📤 メモ・チェックの控えを書き出す</button>
+        <p>別のスマホやPCに移すとき、念のための控えに使います。</p>
+      </div>
+      <div>
+        <button class="btn" id="sampleBtn">🧪 サンプルで試す</button>
+        <p>架空のブックマーク12件を入れて、動きを試せます。</p>
+      </div>
+      <div>
+        <button class="btn danger" id="clearBtn">🗑 このスマホのデータを全部消す</button>
+      </div>
+    </div>
+  </div>
+</dialog>
+
+<input type="file" id="file" accept=".json,application/json" hidden>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+'use strict';
+/* ========== 設定 ========== */
+const CATS = {
+  recipe:{label:'レシピ', emoji:'🍳'},
+  info:  {label:'情報',   emoji:'💡'},
+  other: {label:'その他', emoji:'📎'},
+};
+const TABS = [
+  {key:'all',    label:'すべて'},
+  {key:'recipe', label:'🍳 レシピ'},
+  {key:'info',   label:'💡 情報'},
+  {key:'later',  label:'⏰ あとで確認'},
+  {key:'other',  label:'📎 その他'},
+];
+const PAGE = 40;        // 一度に描く件数（1000件以上でも重くしない）
+const TAG_LIMIT = 15;   // 並べるタグの数
+
+/* ========== 保存（IndexedDB：ブラウザ内の大きめの保存領域） ========== */
+const DB = (() => {
+  let p = null;
+  const open = () => p || (p = new Promise((res, rej) => {
+    const r = indexedDB.open('bukuma', 1);
+    r.onupgradeneeded = () => r.result.createObjectStore('kv');
+    r.onsuccess = () => res(r.result);
+    r.onerror = () => rej(r.error);
+  }));
+  async function get(k){
+    try{
+      const db = await open();
+      return await new Promise((res, rej) => {
+        const q = db.transaction('kv').objectStore('kv').get(k);
+        q.onsuccess = () => res(q.result); q.onerror = () => rej(q.error);
+      });
+    }catch(e){ console.warn(e); return undefined; }
+  }
+  async function set(k, v){
+    try{
+      const db = await open();
+      await new Promise((res, rej) => {
+        const tx = db.transaction('kv', 'readwrite');
+        tx.objectStore('kv').put(v, k);
+        tx.oncomplete = res; tx.onerror = () => rej(tx.error);
+      });
+      return true;
+    }catch(e){ console.warn(e); toast('保存できませんでした'); return false; }
+  }
+  return {get, set};
+})();
+
+/* ========== 状態 ========== */
+// base  … 読み込んだブックマーク（ASが分類したもの）
+// edits … スマホで付けたもの（分類の付け替え・あとで確認・作った・メモ）。id ごと
+const S = {base:[], edits:{}, items:[], tab:'all', tag:null, q:'', sort:'new', shown:PAGE};
+
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+// 検索用に表記をそろえる：全角半角・大文字小文字・カタカナ→ひらがな
+const norm = s => String(s || '').normalize('NFKC').toLowerCase()
+  .replace(/[ァ-ヶ]/g, c => String.fromCharCode(c.charCodeAt(0) - 0x60));
+function fmtDate(s){
+  const d = new Date(s);
+  return isNaN(d) ? '' : `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()}`;
+}
+function today(){
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+// 読み込んだ元データに、スマホで付けた分を重ねた「見る用」の形にする
+function compose(){
+  S.items = S.base.map(b => {
+    const e = S.edits[b.id] || {};
+    const it = {
+      ...b,
+      category: CATS[e.category] ? e.category : (CATS[b.category] ? b.category : 'other'),
+      later: e.later ?? !!b.later,
+      made: e.made || [],
+      memo: e.memo || '',
+      tags: Array.isArray(b.tags) ? b.tags : [],
+    };
+    const r = it.recipe || {};
+    it._h = norm([it.text, it.summary, it.author?.name, it.author?.handle, it.tags.join(' '),
+      r.title, (r.ingredients || []).join(' '), it.memo].join(' '));
+    it._t = new Date(it.createdAt).getTime() || 0;
+    return it;
+  });
+}
+
+/* ========== 絞り込み ========== */
+const inTab = (it, tab) => tab === 'all' ? true : tab === 'later' ? it.later : it.category === tab;
+function matchQ(it){
+  const terms = norm(S.q).split(/\s+/).filter(Boolean);
+  return terms.every(t => it._h.includes(t));
+}
+function sorted(arr){
+  const a = arr.slice();
+  if (S.sort === 'old') a.sort((x, y) => x._t - y._t);
+  else if (S.sort === 'made') a.sort((x, y) => (y.made.length - x.made.length) || (y._t - x._t));
+  else a.sort((x, y) => y._t - x._t);
+  return a;
+}
+
+/* ========== 描画 ========== */
+function render(){
+  const hit = S.items.filter(matchQ);
+  $('#total').textContent = S.items.length ? `${S.items.length.toLocaleString()}件` : '';
+
+  // タブ（件数は検索を反映）
+  $('#tabs').innerHTML = TABS.map(t => {
+    const n = hit.filter(it => inTab(it, t.key)).length;
+    return `<button class="tab" data-tab="${t.key}" aria-pressed="${S.tab === t.key}">${t.label}<b>${n.toLocaleString()}</b></button>`;
+  }).join('');
+
+  // タグ（いま開いているタブの中で多い順）
+  const inT = hit.filter(it => inTab(it, S.tab));
+  const cnt = new Map();
+  inT.forEach(it => it.tags.forEach(g => cnt.set(g, (cnt.get(g) || 0) + 1)));
+  let tags = [...cnt.entries()].sort((a, b) => b[1] - a[1]).slice(0, TAG_LIMIT).map(x => x[0]);
+  if (S.tag && !tags.includes(S.tag)) tags.unshift(S.tag);
+  $('#tags').innerHTML = tags.map(g =>
+    `<button class="tag" data-tag="${esc(g)}" aria-pressed="${S.tag === g}">#${esc(g)}</button>`).join('');
+
+  renderList(inT);
+}
+
+function renderList(inT){
+  const list = $('#list');
+  if (!S.items.length){
+    list.innerHTML = `<div class="empty">
+      <h2>ブックマークを読み込みましょう</h2>
+      <ol>
+        <li>Xのブックマークを書き出す（PCで）</li>
+        <li>ASが「レシピ・情報・その他」に分けて、JSONファイルを作る</li>
+        <li>そのファイルをこのスマホで読み込む</li>
+      </ol>
+      <div class="btns">
+        <button class="btn primary" data-act="import">📥 ファイルを選ぶ</button>
+        <button class="btn" data-act="sample">🧪 サンプルで試す</button>
+      </div></div>`;
+    $('#sentinel').textContent = '';
+    return;
+  }
+  const rows = sorted(inT.filter(it => !S.tag || it.tags.includes(S.tag)));
+  if (!rows.length){
+    list.innerHTML = `<div class="empty"><h2>見つかりませんでした</h2>${S.tab === 'later' && !S.q ? '<p>「あとで確認」はありません。気になるものは詳細画面の「⏰ あとで確認」で印を付けられます。</p>' : '<p>言葉を短くするか、タブやタグを変えてみてください。</p>'}</div>`;
+    $('#sentinel').textContent = '';
+    return;
+  }
+  list.innerHTML = rows.slice(0, S.shown).map(card).join('');
+  $('#sentinel').textContent = rows.length > S.shown
+    ? `残り ${(rows.length - S.shown).toLocaleString()}件を読み込み中…` : `${rows.length.toLocaleString()}件`;
+}
+
+function card(it){
+  const c = CATS[it.category];
+  const r = it.recipe;
+  const title = r?.title || it.summary || '';
+  const img = (it.media || []).find(m => m && m.url);
+  const ing = (r?.ingredients || []).slice(0, 5);
+  return `<button class="card" data-id="${esc(it.id)}">
+    <div class="meta">
+      <span class="badge b-${it.category}">${c.emoji} ${c.label}</span>
+      ${it.later ? '<span class="badge b-later">⏰ あとで</span>' : ''}
+      ${it.made.length ? `<span class="made">作った ${it.made.length}回</span>` : ''}
+      <span>${esc(it.author?.name || '')}</span><span>${fmtDate(it.createdAt)}</span>
+    </div>
+    <div class="row"><div>
+      ${title ? `<h3>${esc(title)}</h3>` : ''}
+      <p class="text">${esc(it.text)}</p>
+    </div>${img ? `<img class="thumb" src="${esc(img.url)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">` : ''}</div>
+    ${ing.length ? `<div class="chips">${ing.map(x => `<span class="chip">${esc(x)}</span>`).join('')}${r.ingredients.length > 5 ? '<span class="chip">…</span>' : ''}</div>` : ''}
+  </button>`;
+}
+
+/* ========== 詳細 ========== */
+let openId = null;
+function openDetail(id){
+  openId = id;
+  renderDetail();
+  const d = $('#detail');
+  if (!d.open) d.showModal();
+  d.scrollTop = 0;
+}
+function linkify(s){
+  return esc(s).replace(/https?:\/\/[^\s<]+/g, u => `<a href="${u}" target="_blank" rel="noopener">${u}</a>`);
+}
+function renderDetail(){
+  const it = S.items.find(x => x.id === openId);
+  if (!it) return;
+  $('#openX').href = it.url || '#';
+  const r = it.recipe;
+  const lastMade = it.made[it.made.length - 1];
+  $('#detailBody').innerHTML = `
+    <div class="seg" role="group" aria-label="分類">
+      ${Object.entries(CATS).map(([k, c]) =>
+        `<button data-act="cat" data-v="${k}" aria-pressed="${it.category === k}">${c.emoji} ${c.label}</button>`).join('')}
+    </div>
+    <div class="actions">
+      <button class="btn ${it.later ? 'on-later' : ''}" data-act="later">${it.later ? '✅ 確認した' : '⏰ あとで確認'}</button>
+      ${it.category === 'recipe' ? `<button class="btn ${it.made.length ? 'on-made' : ''}" data-act="made">🍳 今日作った${it.made.length ? `（${it.made.length}回）` : ''}</button>` : ''}
+    </div>
+    ${it.made.length ? `<p style="margin:4px 2px 0;color:var(--muted);font-size:13px">最後に作った日: ${esc(lastMade)}　<button class="btn" style="padding:2px 8px;font-size:12px" data-act="unmade">1回取り消す</button></p>` : ''}
+
+    <div class="section">
+      <div class="meta"><span>${esc(it.author?.name || '')}</span><span>@${esc(it.author?.handle || '')}</span><span>${fmtDate(it.createdAt)}</span></div>
+      ${r?.title || it.summary ? `<h3 style="margin:6px 0">${esc(r?.title || it.summary)}</h3>` : ''}
+      <p class="fulltext">${linkify(it.text)}</p>
+      ${(it.media || []).length ? `<div class="media">${it.media.filter(m => m && m.url).map(m =>
+        `<a href="${esc(m.url)}" target="_blank" rel="noopener"><img src="${esc(m.url)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.parentNode.remove()"></a>`).join('')}</div>` : ''}
+    </div>
+
+    ${r && ((r.ingredients || []).length || (r.steps || []).length) ? `<div class="section recipe">
+      ${(r.ingredients || []).length ? `<h4>材料${r.servings ? `（${esc(r.servings)}）` : ''}</h4><ul>${r.ingredients.map(x => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}
+      ${(r.steps || []).length ? `<h4 style="margin-top:10px">作り方</h4><ol>${r.steps.map(x => `<li>${esc(x)}</li>`).join('')}</ol>` : ''}
+    </div>` : ''}
+
+    ${it.tags.length ? `<div class="section"><h4>タグ</h4><div class="chips">${it.tags.map(g =>
+      `<button class="tag" data-tag="${esc(g)}">#${esc(g)}</button>`).join('')}</div></div>` : ''}
+
+    <div class="section">
+      <h4>メモ（自動で保存）</h4>
+      <textarea id="memo" placeholder="例: しょうゆ少なめでちょうどいい">${esc(it.memo)}</textarea>
+    </div>`;
+}
+
+async function edit(id, patch){
+  const e = {...(S.edits[id] || {}), ...patch};
+  Object.keys(e).forEach(k => (e[k] === undefined || e[k] === '' || (Array.isArray(e[k]) && !e[k].length)) && delete e[k]);
+  if (Object.keys(e).length) S.edits[id] = e; else delete S.edits[id];
+  compose();
+  await DB.set('edits', S.edits);
+}
+
+/* ========== 読み込み・書き出し ========== */
+// 足す方式：同じ id は新しい内容で置き換え、ファイルに無いものは消さない
+function mergeBase(cur, inc){
+  const m = new Map(cur.map(x => [String(x.id), x]));
+  let added = 0;
+  for (const x of inc){
+    const k = String(x.id);
+    if (!m.has(k)) added++;
+    m.set(k, {...x, id:k});
+  }
+  return {list:[...m.values()], added};
+}
+async function importText(txt){
+  let data;
+  try { data = JSON.parse(txt); } catch { toast('JSONとして読めませんでした'); return; }
+  if (data && data.edits && !data.items){
+    S.edits = {...S.edits, ...data.edits};
+    await DB.set('edits', S.edits);
+    compose(); render();
+    toast(`メモ・チェック ${Object.keys(data.edits).length.toLocaleString()}件を取り込みました`);
+    return;
+  }
+  const items = Array.isArray(data) ? data : data?.items;
+  if (!Array.isArray(items)){ toast('ブクマ帳の形式ではありません'); return; }
+  const ok = items.filter(x => x && x.id != null);
+  const r = mergeBase(S.base, ok);
+  S.base = r.list;
+  await DB.set('base', S.base);
+  compose(); S.shown = PAGE; render();
+  toast(`${ok.length.toLocaleString()}件を読み込みました（新しく増えたのは ${r.added.toLocaleString()}件）`);
+}
+function exportEdits(){
+  const blob = new Blob([JSON.stringify({app:'bukuma', exportedAt:new Date().toISOString(), edits:S.edits}, null, 1)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `bukuma-memo-${today()}.json`;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 3000);
+}
+
+/* ========== トースト ========== */
+let toastTimer;
+function toast(msg){
+  const t = $('#toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2600);
+}
+
+/* ========== 操作 ========== */
+document.addEventListener('click', async ev => {
+  const el = ev.target.closest('button,[data-close]');
+  if (!el) return;
+  if (el.dataset.close != null){ el.closest('dialog').close(); return; }
+  if (el.dataset.tab){ S.tab = el.dataset.tab; S.tag = null; S.shown = PAGE; render(); window.scrollTo(0, 0); return; }
+  if (el.dataset.tag){
+    // 詳細画面のタグを押したら、そのタグで一覧を絞る
+    S.tag = (S.tag === el.dataset.tag && !$('#detail').open) ? null : el.dataset.tag;
+    if ($('#detail').open){ $('#detail').close(); S.tab = 'all'; }
+    S.shown = PAGE; render(); window.scrollTo(0, 0); return;
+  }
+  if (el.classList.contains('card')){ openDetail(el.dataset.id); return; }
+
+  const act = el.dataset.act;
+  if (act === 'import'){ $('#file').click(); return; }
+  if (act === 'sample'){ await importText(JSON.stringify(SAMPLE)); return; }
+  if (!openId) return;
+  const it = S.items.find(x => x.id === openId);
+  if (act === 'cat'){ await edit(openId, {category: el.dataset.v}); toast(`「${CATS[el.dataset.v].label}」に移しました`); }
+  if (act === 'later'){ await edit(openId, {later: !it.later}); toast(it.later ? '確認済みにしました' : '「あとで確認」に入れました'); }
+  if (act === 'made'){ await edit(openId, {made: [...it.made, today()]}); toast(`作った記録を付けました（${it.made.length + 1}回目）`); }
+  if (act === 'unmade'){ await edit(openId, {made: it.made.slice(0, -1)}); toast('1回取り消しました'); }
+  if (['cat', 'later', 'made', 'unmade'].includes(act)){ renderDetail(); render(); }
+});
+
+// メモは手を止めて0.8秒後に保存
+let memoTimer;
+document.addEventListener('input', ev => {
+  if (ev.target.id !== 'memo') return;
+  const id = openId, v = ev.target.value;
+  clearTimeout(memoTimer);
+  memoTimer = setTimeout(async () => { await edit(id, {memo: v}); render(); }, 800);
+});
+$('#detail').addEventListener('close', () => { openId = null; });
+// シートの外側（背景）を押したら閉じる
+document.querySelectorAll('dialog').forEach(d => d.addEventListener('click', e => { if (e.target === d) d.close(); }));
+
+$('#menuBtn').onclick = () => $('#menu').showModal();
+$('#importBtn').onclick = () => { $('#menu').close(); $('#file').click(); };
+$('#sampleBtn').onclick = async () => { $('#menu').close(); await importText(JSON.stringify(SAMPLE)); };
+$('#exportBtn').onclick = () => { exportEdits(); $('#menu').close(); };
+$('#clearBtn').onclick = async () => {
+  if (!confirm('このスマホに入っているブックマークと、メモ・チェックを全部消します。元に戻せません。よろしいですか？')) return;
+  S.base = []; S.edits = {};
+  await DB.set('base', []); await DB.set('edits', {});
+  compose(); render(); $('#menu').close(); toast('消しました');
+};
+$('#file').onchange = async e => {
+  const f = e.target.files[0]; e.target.value = '';
+  if (f) await importText(await f.text());
+};
+$('#sort').onchange = e => { S.sort = e.target.value; S.shown = PAGE; render(); };
+
+// 検索：日本語の変換中は描き直さない（変換が壊れるため）
+let composing = false, qTimer;
+const q = $('#q');
+q.addEventListener('compositionstart', () => composing = true);
+q.addEventListener('compositionend', () => { composing = false; scheduleSearch(); });
+q.addEventListener('input', () => { if (!composing) scheduleSearch(); });
+function scheduleSearch(){
+  clearTimeout(qTimer);
+  qTimer = setTimeout(() => { S.q = q.value; S.shown = PAGE; render(); window.scrollTo(0, 0); }, 300);
+}
+
+// 下までスクロールしたら続きを描く
+new IntersectionObserver(es => {
+  if (es.some(e => e.isIntersecting) && S.items.length){
+    const before = S.shown; S.shown += PAGE;
+    const inT = S.items.filter(matchQ).filter(it => inTab(it, S.tab));
+    if (before < inT.length) renderList(inT);
+  }
+}, {rootMargin:'400px'}).observe($('#sentinel'));
+
+/* ========== サンプル（架空のデータ） ========== */
+const SAMPLE = {app:'bukuma', version:1, items:[
+  {id:'s01', url:'https://x.com/', createdAt:'2026-11-20T19:02:00+09:00', author:{name:'サンプル台所', handle:'sample_kitchen'},
+   text:'レンジだけで鶏むねがしっとり。\n鶏むね1枚、塩小さじ1/2、砂糖小さじ1、酒大さじ1。フォークで穴をあけて揉み込み、ラップして600Wで3分→裏返して2分。そのまま5分置くのがコツ。',
+   category:'recipe', tags:['鶏肉','レンジ','時短'],
+   recipe:{title:'レンジでしっとり鶏むね', servings:'2人分', ingredients:['鶏むね肉 1枚','塩 小さじ1/2','砂糖 小さじ1','酒 大さじ1'], steps:['フォークで全体に穴をあける','塩・砂糖・酒を揉み込む','ラップして600Wで3分、裏返して2分','そのまま5分置いて余熱で火を通す']}},
+  {id:'s02', url:'https://x.com/', createdAt:'2026-11-18T12:30:00+09:00', author:{name:'サンプル台所', handle:'sample_kitchen'},
+   text:'無限ピーマン。ピーマン4個を細切り、ツナ缶1、鶏ガラ小さじ1、ごま油大さじ1。レンジ600Wで3分混ぜるだけ。',
+   category:'recipe', tags:['野菜','副菜','レンジ'],
+   recipe:{title:'無限ピーマン', ingredients:['ピーマン 4個','ツナ缶 1缶','鶏ガラスープの素 小さじ1','ごま油 大さじ1'], steps:['ピーマンを細切りにする','材料を耐熱容器に入れる','600Wで3分加熱して混ぜる']}},
+  {id:'s03', url:'https://x.com/', createdAt:'2026-11-02T08:10:00+09:00', author:{name:'週末パン部（架空）', handle:'sample_bread'},
+   text:'朝の5分で作れるフレンチトースト。卵1、牛乳100ml、砂糖大さじ1を混ぜて食パンを浸し、バターで両面焼く。',
+   category:'recipe', tags:['朝ごはん','パン','時短'], later:true,
+   recipe:{title:'5分フレンチトースト', ingredients:['食パン 1枚','卵 1個','牛乳 100ml','砂糖 大さじ1','バター 適量'], steps:['卵・牛乳・砂糖を混ぜる','食パンを浸す','バターで両面を焼く']}},
+  {id:'s04', url:'https://x.com/', createdAt:'2026-10-15T21:45:00+09:00', author:{name:'作り置きメモ（架空）', handle:'sample_tsukurioki'},
+   text:'豚こまと玉ねぎの甘辛炒め。豚こま200g、玉ねぎ1/2、しょうゆ・みりん各大さじ2、しょうがチューブ3cm。冷蔵で4日もつ。',
+   category:'recipe', tags:['豚肉','作り置き'],
+   recipe:{title:'豚こまの甘辛炒め', ingredients:['豚こま肉 200g','玉ねぎ 1/2個','しょうゆ 大さじ2','みりん 大さじ2','しょうが 3cm'], steps:['玉ねぎを薄切りにする','豚肉と玉ねぎを炒める','調味料を入れて煮からめる']}},
+  {id:'s05', url:'https://x.com/', createdAt:'2026-09-28T17:20:00+09:00', author:{name:'サンプル台所', handle:'sample_kitchen'},
+   text:'（画像に作り方あり）秋鮭のちゃんちゃん焼き、フライパン1つで。',
+   category:'recipe', tags:['魚','フライパン'],
+   recipe:{title:'鮭のちゃんちゃん焼き', ingredients:['生鮭 2切れ','キャベツ 1/8個','味噌 大さじ2','バター 10g'], steps:[]}},
+  {id:'s06', url:'https://x.com/', createdAt:'2026-11-21T07:55:00+09:00', author:{name:'ガジェット便り（架空）', handle:'sample_gadget'},
+   text:'iPhoneの「集中モード」、時間帯で自動切替できるの知らなかった。設定→集中モード→スケジュール。',
+   category:'info', tags:['iPhone','設定'], summary:'iPhoneの集中モードは時間で自動切替できる'},
+  {id:'s07', url:'https://x.com/', createdAt:'2026-11-10T22:10:00+09:00', author:{name:'お金の基本（架空）', handle:'sample_money'},
+   text:'年末調整で忘れがちなもの：生命保険料控除、地震保険料控除、iDeCo。証明書はこの時期に届くので捨てないで。',
+   category:'info', tags:['お金','年末調整'], later:true, summary:'年末調整で忘れがちな控除3つ'},
+  {id:'s08', url:'https://x.com/', createdAt:'2026-10-30T13:00:00+09:00', author:{name:'3Dプリント日記（架空）', handle:'sample_3dp'},
+   text:'PLAの反りは、ベッド温度を少し上げるのと、最初の層をゆっくりにするだけでかなり減る。 https://example.com/tips',
+   category:'info', tags:['3Dプリンタ'], summary:'PLAの反りを減らす2つの設定'},
+  {id:'s09', url:'https://x.com/', createdAt:'2026-10-05T19:30:00+09:00', author:{name:'旅のメモ（架空）', handle:'sample_travel'},
+   text:'紅葉の見頃は11月下旬。平日の朝8時台ならまだ空いてる。',
+   category:'info', tags:['おでかけ'], later:true, summary:'紅葉は11月下旬・平日朝が空いている'},
+  {id:'s10', url:'https://x.com/', createdAt:'2026-09-12T10:00:00+09:00', author:{name:'Excel小ワザ（架空）', handle:'sample_excel'},
+   text:'Ctrl+Shift+L でフィルターのオン・オフ。地味に毎日使う。',
+   category:'info', tags:['Excel','ショートカット'], summary:'Ctrl+Shift+L でフィルター切替'},
+  {id:'s11', url:'https://x.com/', createdAt:'2026-11-01T20:00:00+09:00', author:{name:'ねこ（架空）', handle:'sample_cat'},
+   text:'今日のねこ。箱に入りきれていない。',
+   category:'other', tags:['動物']},
+  {id:'s12', url:'https://x.com/', createdAt:'2026-08-20T18:00:00+09:00', author:{name:'名言bot（架空）', handle:'sample_words'},
+   text:'小さく始めて、毎日少しずつ。',
+   category:'other', tags:['ことば']},
+]};
+
+/* ========== 起動 ========== */
+(async () => {
+  try { await navigator.storage?.persist?.(); } catch {}
+  S.base = (await DB.get('base')) || [];
+  S.edits = (await DB.get('edits')) || {};
+  compose(); render();
+})();
+</script>
+</body>
+</html>
